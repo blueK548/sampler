@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keyboard Sampler</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#111;
+  color:#eee;
+  font-family:system-ui,Arial,sans-serif
+}
+
+.app{
+  max-width:1200px;
+  margin:auto;
+  padding:18px
+}
+
+h1{
+  margin:0 0 14px;
+  font-size:25px
+}
+
+.panel{
+  background:#1c1c1f;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:14px
+}
+
+button,input,select{
+  font:inherit;
+  color:#fff;
+  background:#29292d;
+  border:1px solid #48484e;
+  border-radius:7px;
+  padding:8px 12px
+}
+
+button{
+  cursor:pointer
+}
+
+button:hover{
+  background:#38383e
+}
+
+button.active{
+  background:#b52b2b
+}
+
+button.primary{
+  background:#2965c8
+}
+
+button.green{
+  background:#237d4b
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed
+}
+
+.row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center
+}
+
+.status{
+  color:#aaa;
+  font-size:13px;
+  margin-top:9px
+}
+
+#fileName{
+  color:#8fd3ff
+}
+
+.piano-wrap{
+  overflow-x:auto;
+  padding-bottom:8px
+}
+
+.piano{
+  position:relative;
+  height:220px;
+  min-width:900px;
+  margin:15px auto 5px
+}
+
+.white-keys{
+  display:flex;
+  height:100%
+}
+
+.key{
+  position:relative;
+  flex:1;
+  height:100%;
+  background:#fafafa;
+  color:#111;
+  border:1px solid #aaa;
+  border-radius:0 0 7px 7px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:9px;
+  user-select:none;
+  cursor:pointer
+}
+
+.key.active{
+  background:#75baff
+}
+
+.key span{
+  font-size:12px
+}
+
+.black-keys{
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:62%;
+  display:flex;
+  pointer-events:none
+}
+
+.black-spacer{
+  flex:1
+}
+
+.black{
+  width:6%;
+  max-width:48px;
+  min-width:25px;
+  height:100%;
+  margin:0 -3%;
+  z-index:3;
+  background:#111;
+  color:#fff;
+  border:1px solid #555;
+  border-radius:0 0 5px 5px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:7px;
+  pointer-events:auto;
+  cursor:pointer
+}
+
+.black.active{
+  background:#315d9b
+}
+
+.editor{
+  position:relative;
+  height:180px;
+  background:#0d0d0f;
+  border:1px solid #333;
+  border-radius:8px;
+  overflow:auto
+}
+
+.grid{
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent 39px,
+      #25252a 40px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 29px,
+      #25252a 30px
+    )
+}
+
+.note{
+  position:absolute;
+  height:24px;
+  background:#3e8cff;
+  border:1px solid #8ec2ff;
+  border-radius:4px;
+  cursor:pointer;
+  min-width:22px;
+  display:flex;
+  align-items:center;
+  padding:0 5px;
+  font-size:11px
+}
+
+.note.selected{
+  background:#e89b28
+}
+
+label{
+  font-size:13px;
+  color:#bbb
+}
+
+input[type=range]{
+  padding:0;
+  width:130px
+}
+
+small{
+  color:#999
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h1>🎹 Keyboard Sampler</h1>
+
+<div class="panel">
+
+  <div class="row">
+
+    <input
+      id="file"
+      type="file"
+      accept="audio/*,video/*"
+    >
+
+    <button id="record">● Record</button>
+
+    <button id="play" class="primary">
+      ▶ Play
+    </button>
+
+    <button id="stop">
+      ■ Stop
+    </button>
+
+    <button id="auto" class="green">
+      Auto-process: ON
+    </button>
+
+    <button id="reprocess">
+      ↻ Reprocess
+    </button>
+
+    <button id="export">
+      ⬇ Export WAV
+    </button>
+
+  </div>
+
+  <div class="status" id="status">
+    Load an audio/video file or record a sample.
+  </div>
+
+  <div class="status">
+    File:
+    <span id="fileName">None</span>
+  </div>
+
+</div>
+
+
+<div class="panel">
+
+  <div class="row">
+
+    <label>
+      Root note:
+
+      <select id="root">
+
+        <option value="60">C4</option>
+        <option value="61">C#4</option>
+        <option value="62">D4</option>
+        <option value="63">D#4</option>
+        <option value="64">E4</option>
+        <option value="65">F4</option>
+        <option value="66">F#4</option>
+        <option value="67">G4</option>
+        <option value="68">G#4</option>
+        <option value="69" selected>A4</option>
+        <option value="70">A#4</option>
+        <option value="71">B4</option>
+
+      </select>
+    </label>
+
+
+    <label>
+      Pitch:
+
+      <input
+        id="pitch"
+        type="range"
+        min="-24"
+        max="24"
+        step="1"
+        value="0"
+      >
+
+      <span id="pitchValue">
+        0 st
+      </span>
+    </label>
+
+
+    <label>
+      Volume:
+
+      <input
+        id="volume"
+        type="range"
+        min="0"
+        max="1"
+        step=".01"
+        value=".9"
+      >
+    </label>
+
+  </div>
+
+</div>
+
+
+<div class="panel">
+
+  <div class="piano-wrap">
+
+    <div class="piano" id="piano">
+
+      <div
+        class="white-keys"
+        id="whiteKeys"
+      ></div>
+
+      <div
+        class="black-keys"
+        id="blackKeys"
+      ></div>
+
+    </div>
+
+  </div>
+
+  <small>
+    Computer keyboard:
+    A W S E D F T G Y H U J K O L P ;
+  </small>
+
+</div>
+
+
+<div class="panel">
+
+  <h3>Notes Editor</h3>
+
+  <div class="row">
+
+    <button id="addNote">
+      ＋ Add Note
+    </button>
+
+    <button id="deleteNote">
+      Delete Selected
+    </button>
+
+
+    <label>
+      Start
+
+      <input
+        id="noteStart"
+        type="number"
+        min="0"
+        step=".01"
+        value="0"
+        style="width:80px"
+      >
+    </label>
+
+
+    <label>
+      Duration
+
+      <input
+        id="noteDur"
+        type="number"
+        min=".05"
+        step=".01"
+        value=".5"
+        style="width:80px"
+      >
+    </label>
+
+
+    <label>
+      Note
+
+      <input
+        id="notePitch"
+        type="number"
+        min="21"
+        max="108"
+        value="69"
+        style="width:75px"
+      >
+    </label>
+
+  </div>
+
+
+  <div
+    class="editor"
+    id="editor"
+  >
+
+    <div class="grid"></div>
+
+    <div id="notes"></div>
+
+  </div>
+
+</div>
+
+
+<div class="panel">
+
+  <strong>How it works</strong>
+
+  <div class="status">
+    Load an audio/video sample. The sample is used directly
+    by the piano. The Root note tells the sampler which
+    MIDI note the original sample represents.
+  </div>
+
+</div>
+
+
+<script>
+
+const AC =
+  window.AudioContext ||
+  window.webkitAudioContext;
+
+const audioCtx =
+  new AC();
+
+
+let sourceBuffer = null;
+
+let recording = false;
+let playing = false;
+let autoProcess = true;
+
+let selectedNote = null;
+
+let notes = [];
+
+let recordStartTime = 0;
+
+let activeTimers = [];
+
+let activeSources = [];
+
+
+/*
+  Sources currently being held by the user.
+
+  This is separate from activeSources because a key
+  needs to be stopped specifically when released.
+*/
+
+const heldSources = new Map();
+
+
+const $ = id =>
+  document.getElementById(id);
+
+
+const status = msg =>
+  $("status").textContent = msg;
+
+
+/* Piano */
+
+const whiteNotes = [
+
+  {m:60,n:"C4"},
+  {m:62,n:"D4"},
+  {m:64,n:"E4"},
+  {m:65,n:"F4"},
+  {m:67,n:"G4"},
+  {m:69,n:"A4"},
+  {m:71,n:"B4"},
+
+  {m:72,n:"C5"},
+  {m:74,n:"D5"},
+  {m:76,n:"E5"},
+  {m:77,n:"F5"},
+  {m:79,n:"G5"},
+  {m:81,n:"A5"},
+  {m:83,n:"B5"}
+
+];
+
+
+const blackNotes = [
+
+  {m:61,n:"C#4",after:0},
+  {m:63,n:"D#4",after:1},
+  {m:66,n:"F#4",after:3},
+  {m:68,n:"G#4",after:4},
+  {m:70,n:"A#4",after:5},
+
+  {m:73,n:"C#5",after:7},
+  {m:75,n:"D#5",after:8},
+  {m:78,n:"F#5",after:10},
+  {m:80,n:"G#5",after:11},
+  {m:82,n:"A#5",after:12}
+
+];
+
+
+/*
+  Converts MIDI number to note name.
+*/
+
+function midiName(midi){
+
+  const names = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B"
+  ];
+
+  const octave =
+    Math.floor(midi / 12) - 1;
+
+  return (
+    names[midi % 12] +
+    octave
+  );
+
+}
+
+
+/*
+  Create piano key.
+*/
+
+function makeKey(note, black=false){
+
+  const el =
+    document.createElement("div");
+
+  el.className =
+    "key" +
+    (black ? " black" : "");
+
+  el.dataset.midi =
+    note.midi ?? note.m;
+
+
+  el.innerHTML =
+    "<span>" +
+    (note.n ?? midiName(note.midi)) +
+    "</span>";
+
+
+  /*
+    Mouse / touchscreen press.
+  */
+
+  el.addEventListener(
+    "pointerdown",
+    e => {
+
+      e.preventDefault();
+
+      el.setPointerCapture?.(
+        e.pointerId
+      );
+
+      startHeldNote(
+        note.m ?? note.midi,
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  /*
+    Release the pointer.
+
+    This is what stops the sound.
+  */
+
+  el.addEventListener(
+    "pointerup",
+    e => {
+
+      e.preventDefault();
+
+      stopHeldNote(
+        note.m ?? note.midi,
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  el.addEventListener(
+    "pointercancel",
+    e => {
+
+      stopHeldNote(
+        note.m ?? note.midi,
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  el.addEventListener(
+    "lostpointercapture",
+    e => {
+
+      stopHeldNote(
+        note.m ?? note.midi,
+        e.pointerId
+      );
+
+    }
+  );
+
+
+  return el;
+
+}
+
+
+whiteNotes.forEach(
+  n =>
+    $("whiteKeys").appendChild(
+      makeKey(n)
+    )
+);
+
+
+blackNotes.forEach(n => {
+
+  const spacer =
+    document.createElement("div");
+
+  spacer.className =
+    "black-spacer";
+
+  $("blackKeys").appendChild(
+    spacer
+  );
+
+  $("blackKeys").appendChild(
+    makeKey(n,true)
+  );
+
+});
+
+
+const finalSpacer =
+  document.createElement("div");
+
+finalSpacer.className =
+  "black-spacer";
+
+$("blackKeys").appendChild(
+  finalSpacer
+);
+
+
+/*
+  Flash the actual piano key.
+
+  The pitch shift is applied to the pressed MIDI
+  note, so the shifted note is what gets highlighted
+  when it exists on the displayed keyboard.
+*/
+
+function flashKey(midi){
+
+  const el =
+    document.querySelector(
+      `[data-midi="${midi}"]`
+    );
+
+  if(!el) return;
+
+  el.classList.add("active");
+
+  setTimeout(
+    () =>
+      el.classList.remove("active"),
+    150
+  );
+
+}
+
+
+/*
+  Pitch shift.
+
+  IMPORTANT:
+
+  The Pitch control changes the KEY'S MIDI number.
+
+  Example:
+
+  A4 = MIDI 69
+
+  Pitch +2:
+
+  A4 becomes MIDI 71 = B4
+
+  Pitch -2:
+
+  A4 becomes MIDI 67 = G4
+*/
+
+function getShiftedMidi(midi){
+
+  const pitchShift =
+    Number($("pitch").value);
+
+  return midi + pitchShift;
+
+}
+
+
+/*
+  Create a sampler voice.
+
+  The sample is tuned from its Root note
+  to the requested MIDI note.
+
+  detune is in cents.
+
+  100 cents = 1 semitone.
+*/
+
+function createVoice(
+  midi,
+  duration = null,
+  hold = false
+){
+
+  if(!sourceBuffer){
+
+    status(
+      "Load a sample first."
+    );
+
+    return null;
+
+  }
+
+
+  if(audioCtx.state === "suspended"){
+    audioCtx.resume();
+  }
+
+
+  const source =
+    audioCtx.createBufferSource();
+
+  const gain =
+    audioCtx.createGain();
+
+
+  source.buffer =
+    sourceBuffer;
+
+
+  const rootMidi =
+    Number($("root").value);
+
+
+  /*
+    MIDI distance between the sample's
+    original Root and the requested key.
+  */
+
+  const semitones =
+    midi - rootMidi;
+
+
+  /*
+    Pitch the sample by semitones.
+
+    detune uses cents.
+  */
+
+  source.detune.value =
+    semitones * 100;
+
+
+  /*
+    The effective playback duration changes
+    when the sample is pitched.
+
+    Higher pitch = shorter sample.
+    Lower pitch = longer sample.
+  */
+
+  const playbackRate =
+    Math.pow(
+      2,
+      semitones / 12
+    );
+
+
+  const naturalDuration =
+    sourceBuffer.duration /
+    playbackRate;
+
+
+  const playDuration =
+    duration == null
+      ? naturalDuration
+      : Math.min(
+          duration,
+          naturalDuration
+        );
+
+
+  const now =
+    audioCtx.currentTime;
+
+
+  const volume =
+    Number($("volume").value);
+
+
+  /*
+    Small attack.
+  */
+
+  gain.gain.setValueAtTime(
+    0,
+    now
+  );
+
+  gain.gain.linearRampToValueAtTime(
+    volume,
+    now + 0.01
+  );
+
+
+  /*
+    If this is a scheduled note,
+    automatically fade it out.
+
+    Held keyboard notes instead remain
+    active until keyup.
+  */
+
+  if(!hold){
+
+    gain.gain.setValueAtTime(
+      volume,
+      now +
+      Math.max(
+        0.01,
+        playDuration - 0.06
+      )
+    );
+
+    gain.gain.linearRampToValueAtTime(
+      0.001,
+      now + playDuration
+    );
+
+  }
+
+
+  source.connect(gain);
+
+  gain.connect(
+    audioCtx.destination
+  );
+
+
+  source.start(now);
+
+
+  /*
+    Scheduled notes get an automatic stop.
+
+    Held notes are stopped by releaseHeldNote().
+  */
+
+  if(!hold){
+
+    source.stop(
+      now +
+      playDuration +
+      0.03
+    );
+
+  }
+
+
+  activeSources.push(
+    source
+  );
+
+
+  source.onended = () => {
+
+    const i =
+      activeSources.indexOf(
+        source
+      );
+
+    if(i >= 0){
+      activeSources.splice(i,1);
+    }
+
+  };
+
+
+  return {
+    source,
+    gain,
+    playDuration
+  };
+
+}
+
+
+/*
+  Start a note that remains active
+  while the key is held.
+*/
+
+function startHeldNote(
+  originalMidi,
+  pointerId
+){
+
+  /*
+    Prevent duplicate pointer notes.
+  */
+
+  const key =
+    "pointer:" +
+    pointerId;
+
+
+  if(heldSources.has(key)){
+    return;
+  }
+
+
+  /*
+    Pitch control changes the actual key.
+  */
+
+  const shiftedMidi =
+    getShiftedMidi(
+      originalMidi
+    );
+
+
+  /*
+    Don't allow notes outside MIDI range.
+  */
+
+  if(
+    shiftedMidi < 0 ||
+    shiftedMidi > 127
+  ){
+    return;
+  }
+
+
+  const voice =
+    createVoice(
+      shiftedMidi,
+      null,
+      true
+    );
+
+
+  if(!voice){
+    return;
+  }
+
+
+  heldSources.set(
+    key,
+    {
+      source:voice.source,
+      gain:voice.gain,
+      midi:shiftedMidi
+    }
+  );
+
+
+  flashKey(
+    shiftedMidi
+  );
+
+
+  /*
+    Recording stores the SHIFTED key.
+  */
+
+  if(recording){
+
+    addNoteData({
+
+      midi:shiftedMidi,
+
+      start:
+        performance.now() / 1000 -
+        recordStartTime,
+
+      duration:0
+
+    });
+
+  }
+
+}
+
+
+/*
+  Stop a held note.
+*/
+
+function stopHeldNote(
+  originalMidi,
+  pointerId
+){
+
+  const key =
+    "pointer:" +
+    pointerId;
+
+
+  const held =
+    heldSources.get(key);
+
+
+  if(!held){
+    return;
+  }
+
+
+  heldSources.delete(key);
+
+
+  const now =
+    audioCtx.currentTime;
+
+
+  /*
+    Short release to avoid clicking.
+  */
+
+  try{
+
+    held.gain.gain.cancelScheduledValues(
+      now
+    );
+
+    held.gain.gain.setValueAtTime(
+      held.gain.gain.value,
+      now
+    );
+
+    held.gain.gain.linearRampToValueAtTime(
+      0.001,
+      now + 0.03
+    );
+
+    held.source.stop(
+      now + 0.035
+    );
+
+  }catch(e){}
+
+}
+
+
+/*
+  Computer keyboard mapping.
+*/
+
+const keyMap = {
+
+  a:60,
+  w:61,
+  s:62,
+  e:63,
+  d:64,
+  f:65,
+  t:66,
+  g:67,
+  y:68,
+  h:69,
+  u:70,
+  j:71,
+  k:72,
+  o:73,
+  l:74,
+  p:75,
+  ";":76
+
+};
+
+
+/*
+  Track computer keys separately.
+*/
+
+const keyboardHeld =
+  new Map();
+
+
+/*
+  KEY DOWN
+*/
+
+document.addEventListener(
+  "keydown",
+  e => {
+
+    if(e.repeat){
+      return;
+    }
+
+
+    if(
+      e.target.tagName === "INPUT" ||
+      e.target.tagName === "SELECT" ||
+      e.target.tagName === "BUTTON"
+    ){
+      return;
+    }
+
+
+    const key =
+      e.key.toLowerCase();
+
+
+    const midi =
+      keyMap[key];
+
+
+    if(midi === undefined){
+      return;
+    }
+
+
+    e.preventDefault();
+
+
+    /*
+      Prevent duplicate notes.
+    */
+
+    if(keyboardHeld.has(key)){
+      return;
+    }
+
+
+    const shiftedMidi =
+      getShiftedMidi(midi);
+
+
+    if(
+      shiftedMidi < 0 ||
+      shiftedMidi > 127
+    ){
+      return;
+    }
+
+
+    const voice =
+      createVoice(
+        shiftedMidi,
+        null,
+        true
+      );
+
+
+    if(!voice){
+      return;
+    }
+
+
+    keyboardHeld.set(
+      key,
+      {
+        source:voice.source,
+        gain:voice.gain,
+        midi:shiftedMidi
+      }
+    );
+
+
+    flashKey(
+      shiftedMidi
+    );
+
+
+    /*
+      Record the shifted MIDI note.
+    */
+
+    if(recording){
+
+      addNoteData({
+
+        midi:shiftedMidi,
+
+        start:
+          performance.now() / 1000 -
+          recordStartTime,
+
+        duration:0
+
+      });
+
+    }
+
+  }
+);
+
+
+/*
+  KEY UP
+
+  This is the important release behavior.
+*/
+
+document.addEventListener(
+  "keyup",
+  e => {
+
+    const key =
+      e.key.toLowerCase();
+
+
+    if(!keyboardHeld.has(key)){
+      return;
+    }
+
+
+    e.preventDefault();
+
+
+    const held =
+      keyboardHeld.get(key);
+
+
+    keyboardHeld.delete(key);
+
+
+    const now =
+      audioCtx.currentTime;
+
+
+    try{
+
+      held.gain.gain.cancelScheduledValues(
+        now
+      );
+
+      held.gain.gain.setValueAtTime(
+        held.gain.gain.value,
+        now
+      );
+
+      held.gain.gain.linearRampToValueAtTime(
+        0.001,
+        now + 0.03
+      );
+
+      held.source.stop(
+        now + 0.035
+      );
+
+    }catch(err){}
+
+  }
+);
+
+
+/*
+  If the browser/window loses focus,
+  release all computer keyboard notes.
+*/
+
+window.addEventListener(
+  "blur",
+  () => {
+
+    keyboardHeld.forEach(
+      held => {
+
+        try{
+
+          const now =
+            audioCtx.currentTime;
+
+          held.gain.gain.cancelScheduledValues(
+            now
+          );
+
+          held.gain.gain.setValueAtTime(
+            held.gain.gain.value,
+            now
+          );
+
+          held.gain.gain.linearRampToValueAtTime(
+            0.001,
+            now + 0.03
+          );
+
+          held.source.stop(
+            now + 0.035
+          );
+
+        }catch(e){}
+
+      }
+    );
+
+
+    keyboardHeld.clear();
+
+  }
+);
+
+
+/* Notes editor */
+
+function addNoteData(n){
+
+  notes.push(n);
+
+  renderNotes();
+
+}
+
+
+function renderNotes(){
+
+  const box =
+    $("notes");
+
+  box.innerHTML = "";
+
+
+  notes.forEach(
+    (n,i) => {
+
+      const el =
+        document.createElement("div");
+
+
+      el.className =
+        "note" +
+        (
+          selectedNote === i
+            ? " selected"
+            : ""
+        );
+
+
+      el.style.left =
+        n.start * 80 +
+        "px";
+
+
+      el.style.top =
+        Math.max(
+          0,
+          (108 - n.midi) * 2
+        ) +
+        "px";
+
+
+      el.style.width =
+        Math.max(
+          22,
+          n.duration * 80
+        ) +
+        "px";
+
+
+      el.textContent =
+        n.midi;
+
+
+      el.onclick = () => {
+
+        selectedNote = i;
+
+
+        $("noteStart").value =
+          n.start.toFixed(2);
+
+
+        $("noteDur").value =
+          n.duration.toFixed(2);
+
+
+        $("notePitch").value =
+          n.midi;
+
+
+        renderNotes();
+
+      };
+
+
+      box.appendChild(el);
+
+    }
+  );
+
+}
+
+
+$("addNote").onclick = () => {
+
+  addNoteData({
+
+    midi:
+      Number(
+        $("notePitch").value
+      ),
+
+    start:
+      Number(
+        $("noteStart").value
+      ),
+
+    duration:
+      Number(
+        $("noteDur").value
+      )
+
+  });
+
+};
+
+
+$("deleteNote").onclick = () => {
+
+  if(selectedNote === null){
+    return;
+  }
+
+
+  notes.splice(
+    selectedNote,
+    1
+  );
+
+
+  selectedNote = null;
+
+
+  renderNotes();
+
+};
+
+
+[
+  "noteStart",
+  "noteDur",
+  "notePitch"
+].forEach(
+  id => {
+
+    $(id).addEventListener(
+      "change",
+      () => {
+
+        if(selectedNote === null){
+          return;
+        }
+
+
+        notes[selectedNote] = {
+
+          ...notes[selectedNote],
+
+          start:
+            Number(
+              $("noteStart").value
+            ),
+
+          duration:
+            Number(
+              $("noteDur").value
+            ),
+
+          midi:
+            Number(
+              $("notePitch").value
+            )
+
+        };
+
+
+        renderNotes();
+
+      }
+    );
+
+  }
+);
+
+
+/* Controls */
+
+$("pitch").oninput = () => {
+
+  $("pitchValue").textContent =
+    $("pitch").value +
+    " st";
+
+
+  if(autoProcess){
+    processSampler();
+  }
+
+};
+
+
+$("volume").oninput = () => {
+
+  if(autoProcess){
+    processSampler();
+  }
+
+};
+
+
+$("root").onchange = () => {
+
+  if(autoProcess){
+    processSampler();
+  }
+
+};
+
+
+$("auto").onclick = () => {
+
+  autoProcess =
+    !autoProcess;
+
+
+  $("auto").textContent =
+    "Auto-process: " +
+    (
+      autoProcess
+        ? "ON"
+        : "OFF"
+    );
+
+
+  if(autoProcess){
+    processSampler();
+  }
+
+};
+
+
+$("reprocess").onclick =
+  processSampler;
+
+
+function processSampler(){
+
+  if(!sourceBuffer){
+
+    status(
+      "Nothing loaded to process."
+    );
+
+    return;
+
+  }
+
+
+  status(
+    "Sampler ready • " +
+    sourceBuffer.duration.toFixed(2) +
+    " sec • " +
+    sourceBuffer.sampleRate +
+    " Hz"
+  );
+
+}
+
+
+/* Recording */
+
+$("record").onclick =
+  async () => {
+
+    if(recording){
+
+      recording = false;
+
+      $("record")
+        .classList
+        .remove("active");
+
+
+      status(
+        "Recording stopped. Notes are in the editor."
+      );
+
+      return;
+
+    }
+
+
+    if(!sourceBuffer){
+
+      status(
+        "Load a custom sample before recording."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      audioCtx.state ===
+      "suspended"
+    ){
+
+      await audioCtx.resume();
+
+    }
+
+
+    recording = true;
+
+    notes = [];
+
+    selectedNote = null;
+
+
+    recordStartTime =
+      performance.now() / 1000;
+
+
+    $("record")
+      .classList
+      .add("active");
+
+
+    status(
+      "Recording... play the piano."
+    );
+
+  };
+
+
+/*
+  Playback of editor notes.
+*/
+
+$("play").onclick =
+  async () => {
+
+    if(playing){
+
+      stopPlayback();
+
+      return;
+
+    }
+
+
+    if(!notes.length){
+
+      status(
+        "No notes to play."
+      );
+
+      return;
+
+    }
+
+
+    if(!sourceBuffer){
+
+      status(
+        "Load a custom sample first."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      audioCtx.state ===
+      "suspended"
+    ){
+
+      await audioCtx.resume();
+
+    }
+
+
+    playing = true;
+
+
+    $("play").textContent =
+      "❚❚ Pause";
+
+
+    notes.forEach(
+      n => {
+
+        const timer =
+          setTimeout(
+            () => {
+
+              if(playing){
+
+                playScheduledNote(
+                  n.midi,
+                  n.duration
+                );
+
+              }
+
+            },
+            n.start * 1000
+          );
+
+
+        activeTimers.push(
+          timer
+        );
+
+      }
+    );
+
+
+    const total =
+      Math.max(
+        ...notes.map(
+          n =>
+            n.start +
+            n.duration
+        ),
+        0
+      );
+
+
+    activeTimers.push(
+
+      setTimeout(
+        () => {
+
+          if(playing){
+            stopPlayback();
+          }
+
+        },
+        total * 1000 + 150
+      )
+
+    );
+
+
+    status(
+      "Playing keyboard notes..."
+    );
+
+  };
+
+
+/*
+  Scheduled editor note.
+
+  Editor notes already contain their desired
+  MIDI pitch, so the Pitch slider is NOT applied
+  a second time here.
+*/
+
+function playScheduledNote(
+  midi,
+  duration
+){
+
+  const voice =
+    createVoice(
+      midi,
+      duration,
+      false
+    );
+
+
+  if(voice){
+    flashKey(midi);
+  }
+
+}
+
+
+function stopPlayback(){
+
+  playing = false;
+
+
+  activeTimers.forEach(
+    clearTimeout
+  );
+
+
+  activeTimers = [];
+
+
+  activeSources.forEach(
+    source => {
+
+      try{
+        source.stop();
+      }catch(e){}
+
+    }
+  );
+
+
+  activeSources = [];
+
+
+  $("play").textContent =
+    "▶ Play";
+
+
+  status(
+    "Playback stopped."
+  );
+
+}
+
+
+$("stop").onclick = () => {
+
+  stopPlayback();
+
+  status(
+    "Stopped."
+  );
+
+};
+
+
+/* Load custom audio/video */
+
+$("file").onchange =
+  async e => {
+
+    const file =
+      e.target.files[0];
+
+
+    if(!file){
+      return;
+    }
+
+
+    $("fileName").textContent =
+      file.name;
+
+
+    status(
+      "Loading and decoding " +
+      file.name +
+      "..."
+    );
+
+
+    try{
+
+      if(
+        audioCtx.state ===
+        "suspended"
+      ){
+
+        await audioCtx.resume();
+
+      }
+
+
+      const data =
+        await file.arrayBuffer();
+
+
+      sourceBuffer =
+        await audioCtx.decodeAudioData(
+          data.slice(0)
+        );
+
+
+      status(
+        "Loaded " +
+        file.name +
+        " • " +
+        sourceBuffer.duration.toFixed(2) +
+        " sec • " +
+        sourceBuffer.sampleRate +
+        " Hz"
+      );
+
+
+      if(autoProcess){
+        processSampler();
+      }
+
+
+    }catch(err){
+
+      console.error(err);
+
+
+      sourceBuffer = null;
+
+
+      status(
+        "Could not decode this file. " +
+        "Try WAV, MP3, M4A, OGG, WebM, " +
+        "or another browser-supported audio/video file."
+      );
+
+    }
+
+  };
+
+
+/*
+  WAV EXPORT
+*/
+
+$("export").onclick =
+  async () => {
+
+    if(!notes.length){
+
+      status(
+        "Nothing to export."
+      );
+
+      return;
+
+    }
+
+
+    if(!sourceBuffer){
+
+      status(
+        "Load a custom sample first."
+      );
+
+      return;
+
+    }
+
+
+    status(
+      "Rendering WAV..."
+    );
+
+
+    try{
+
+      const duration =
+        Math.max(
+          ...notes.map(
+            n =>
+              n.start +
+              n.duration
+          ),
+          1
+        ) + .2;
+
+
+      const sampleRate =
+        44100;
+
+
+      const off =
+        new OfflineAudioContext(
+          1,
+          Math.ceil(
+            duration *
+            sampleRate
+          ),
+          sampleRate
+        );
+
+
+      notes.forEach(
+        n => {
+
+          const source =
+            off.createBufferSource();
+
+
+          const gain =
+            off.createGain();
+
+
+          source.buffer =
+            sourceBuffer;
+
+
+          const rootMidi =
+            Number(
+              $("root").value
+            );
+
+
+          /*
+            Editor MIDI is already the final
+            pitch, so no Pitch-slider shift
+            is applied again.
+          */
+
+          const semitones =
+            n.midi -
+            rootMidi;
+
+
+          source.detune.value =
+            semitones * 100;
+
+
+          const playbackRate =
+            Math.pow(
+              2,
+              semitones / 12
+            );
+
+
+          const available =
+            sourceBuffer.duration /
+            playbackRate;
+
+
+          const dur =
+            Math.min(
+              n.duration,
+              available
+            );
+
+
+          const volume =
+            Number(
+              $("volume").value
+            );
+
+
+          gain.gain.setValueAtTime(
+            0,
+            n.start
+          );
+
+
+          gain.gain.linearRampToValueAtTime(
+            volume,
+            n.start + .01
+          );
+
+
+          gain.gain.setValueAtTime(
+            volume,
+            n.start +
+            Math.max(
+              .01,
+              dur - .06
+            )
+          );
+
+
+          gain.gain.linearRampToValueAtTime(
+            .001,
+            n.start + dur
+          );
+
+
+          source.connect(gain);
+
+          gain.connect(
+            off.destination
+          );
+
+
+          source.start(
+            n.start
+          );
+
+
+          source.stop(
+            n.start +
+            dur +
+            .03
+          );
+
+        }
+      );
+
+
+      const rendered =
+        await off.startRendering();
+
+
+      const wav =
+        audioBufferToWav(
+          rendered
+        );
+
+
+      downloadBlob(
+        new Blob(
+          [wav],
+          {
+            type:"audio/wav"
+          }
+        ),
+        "keyboard-sampler.wav"
+      );
+
+
+      status(
+        "Export complete."
+      );
+
+
+    }catch(err){
+
+      console.error(err);
+
+
+      status(
+        "WAV export failed."
+      );
+
+    }
+
+  };
+
+
+/* WAV encoder */
+
+function audioBufferToWav(
+  buffer
+){
+
+  const channels =
+    buffer.numberOfChannels;
+
+
+  const length =
+    44 +
+    buffer.length *
+    channels *
+    2;
+
+
+  const ab =
+    new ArrayBuffer(
+      length
+    );
+
+
+  const view =
+    new DataView(ab);
+
+
+  function str(
+    offset,
+    text
+  ){
+
+    for(
+      let i=0;
+      i<text.length;
+      i++
+    ){
+
+      view.setUint8(
+        offset+i,
+        text.charCodeAt(i)
+      );
+
+    }
+
+  }
+
+
+  let pos = 0;
+
+
+  str(pos,"RIFF");
+  pos += 4;
+
+
+  view.setUint32(
+    pos,
+    36 +
+    buffer.length *
+    channels *
+    2,
+    true
+  );
+
+  pos += 4;
+
+
+  str(pos,"WAVE");
+  pos += 4;
+
+
+  str(pos,"fmt ");
+  pos += 4;
+
+
+  view.setUint32(
+    pos,
+    16,
+    true
+  );
+
+  pos += 4;
+
+
+  view.setUint16(
+    pos,
+    1,
+    true
+  );
+
+  pos += 2;
+
+
+  view.setUint16(
+    pos,
+    channels,
+    true
+  );
+
+  pos += 2;
+
+
+  view.setUint32(
+    pos,
+    buffer.sampleRate,
+    true
+  );
+
+  pos += 4;
+
+
+  view.setUint32(
+    pos,
+    buffer.sampleRate *
+    channels *
+    2,
+    true
+  );
+
+  pos += 4;
+
+
+  view.setUint16(
+    pos,
+    channels * 2,
+    true
+  );
+
+  pos += 2;
+
+
+  view.setUint16(
+    pos,
+    16,
+    true
+  );
+
+  pos += 2;
+
+
+  str(pos,"data");
+  pos += 4;
+
+
+  view.setUint32(
+    pos,
+    buffer.length *
+    channels *
+    2,
+    true
+  );
+
+  pos += 4;
+
+
+  for(
+    let i=0;
+    i<buffer.length;
+    i++
+  ){
+
+    for(
+      let c=0;
+      c<channels;
+      c++
+    ){
+
+      let sample =
+        buffer.getChannelData(c)[i];
+
+
+      sample =
+        Math.max(
+          -1,
+          Math.min(
+            1,
+            sample
+          )
+        );
+
+
+      view.setInt16(
+        pos,
+        sample < 0
+          ? sample * 0x8000
+          : sample * 0x7fff,
+        true
+      );
+
+
+      pos += 2;
+
+    }
+
+  }
+
+
+  return ab;
+
+}
+
+
+function downloadBlob(
+  blob,
+  name
+){
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const a =
+    document.createElement("a");
+
+
+  a.href = url;
+
+  a.download = name;
+
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(url),
+    1000
+  );
+
+}
+
+
+renderNotes();
+
+</script>
+
+</body>
+</html>
